@@ -1,5 +1,5 @@
 def main():
-    print("Hello from test-juypter-notebook!")
+    print("Hello from portfolio-var-notebook!")
 
 
 if __name__ == "__main__":

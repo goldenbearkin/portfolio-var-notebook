@@ -1,13 +1,10 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
-from typing import Optional, Tuple
 
 import numpy as np
 import pandas as pd
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class VarResult:
     """Container for VaR results."""
 
@@ -15,8 +12,8 @@ class VarResult:
     timeframe: str
     historical_var_abs: float
     historical_var_pct: float
-    parametric_var_abs: Optional[float] = None
-    parametric_var_pct: Optional[float] = None
+    parametric_var_abs: float | None = None
+    parametric_var_pct: float | None = None
 
 
 def _inv_norm_cdf(p: float) -> float:
@@ -128,10 +125,10 @@ def summarize_var(
     portfolio_value: float,
     confidence: float,
     timeframe: str,
-    asset_returns: Optional[pd.DataFrame] = None,
-    positions: Optional[pd.Series] = None,
-    latest_prices: Optional[pd.Series] = None,
-) -> Tuple[VarResult, Optional[pd.Series]]:
+    asset_returns: pd.DataFrame | None = None,
+    positions: pd.Series | None = None,
+    latest_prices: pd.Series | None = None,
+) -> tuple[VarResult, pd.Series | None]:
     """Compute historical VaR and optional parametric VaR plus contributions.
 
     If `positions` and `latest_prices` are provided, contributions are computed using value exposures.

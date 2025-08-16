@@ -1,12 +1,10 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Sequence
+from collections.abc import Sequence
 
 import pandas as pd
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Asset:
     """Represents a single portfolio asset.
 
@@ -35,9 +33,9 @@ class Portfolio:
     """
 
     def __init__(self, assets: Sequence[Asset]):
-        self.assets: List[Asset] = list(assets)
+        self.assets: list[Asset] = list(assets)
 
-    def tickers(self) -> List[str]:
+    def tickers(self) -> list[str]:
         """Return tickers for all assets."""
         return [a.ticker for a in self.assets]
 
@@ -45,18 +43,18 @@ class Portfolio:
         """Return a Series of positions indexed by ticker."""
         return pd.Series({a.ticker: a.position for a in self.assets}, dtype=float)
 
-    def names_map(self) -> Dict[str, str]:
+    def names_map(self) -> dict[str, str]:
         """Map ticker to friendly name."""
         return {a.ticker: a.name for a in self.assets}
 
-    def holdings_table(self, latest_prices: Optional[pd.Series] = None) -> pd.DataFrame:
+    def holdings_table(self, latest_prices: pd.Series | None = None) -> pd.DataFrame:
         """Return a holdings summary table.
 
         If `latest_prices` is provided, includes market value in currency.
         """
         data = []
         for a in self.assets:
-            row: Dict[str, object] = {
+            row: dict[str, object] = {
                 "Ticker": a.ticker,
                 "Name": a.name,
                 "Position": a.position,

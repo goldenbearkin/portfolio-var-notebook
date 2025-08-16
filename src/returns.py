@@ -1,12 +1,10 @@
-from __future__ import annotations
-
-from typing import Literal
+from typing import Literal, TypeAlias
 
 import numpy as np
 import pandas as pd
 
 
-Timeframe = Literal["daily", "weekly", "monthly"]
+Timeframe: TypeAlias = Literal["daily", "weekly", "monthly"]
 
 
 def resample_prices(prices: pd.DataFrame, timeframe: Timeframe) -> pd.DataFrame:
@@ -18,14 +16,15 @@ def resample_prices(prices: pd.DataFrame, timeframe: Timeframe) -> pd.DataFrame:
     if prices.empty:
         return prices
     tf = timeframe.lower()
-    if tf == "daily":
-        resampled = prices.resample("B").last().dropna(how="all")
-    elif tf == "weekly":
-        resampled = prices.resample("W-FRI").last().dropna(how="all")
-    elif tf == "monthly":
-        resampled = prices.resample("M").last().dropna(how="all")
-    else:
-        raise ValueError(f"Unsupported timeframe: {timeframe}")
+    match tf:
+        case "daily":
+            resampled = prices.resample("B").last().dropna(how="all")
+        case "weekly":
+            resampled = prices.resample("W-FRI").last().dropna(how="all")
+        case "monthly":
+            resampled = prices.resample("M").last().dropna(how="all")
+        case _:
+            raise ValueError(f"Unsupported timeframe: {timeframe}")
     return resampled
 
 

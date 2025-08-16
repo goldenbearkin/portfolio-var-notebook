@@ -1,47 +1,50 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple, Iterable
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
 import yfinance as yf
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Coverage:
     """Data coverage metadata for a single ticker."""
 
     ticker: str
-    start: Optional[pd.Timestamp]
-    end: Optional[pd.Timestamp]
+    start: pd.Timestamp | None
+    end: pd.Timestamp | None
     observations: int
 
 
 def _normalize_adj_close(
-    df: pd.DataFrame | pd.Series, tickers: List[str]
+    df: pd.DataFrame | pd.Series, tickers: list[str]
 ) -> pd.DataFrame:
     """Ensure we return a DataFrame with columns as tickers containing Adj Close values."""
-    if isinstance(df, pd.Series):
-        frame = df.to_frame(name=tickers[0])
-        return frame
-    if df.columns.nlevels == 1:
-        return df
-    if "Adj Close" in df.columns.get_level_values(0):
-        adj = df["Adj Close"].copy()
-        adj.columns.name = None
-        return adj
-    if "Close" in df.columns.get_level_values(0):
-        close = df["Close"].copy()
-        close.columns.name = None
-        return close
-    raise ValueError("Expected 'Adj Close' or 'Close' in yfinance download result")
+    match df:
+        case pd.Series():
+            return df.to_frame(name=tickers[0])
+        case pd.DataFrame() if df.columns.nlevels == 1:
+            return df
+        case pd.DataFrame():
+            if "Adj Close" in df.columns.get_level_values(0):
+                adj = df["Adj Close"].copy()
+                adj.columns.name = None
+                return adj
+            if "Close" in df.columns.get_level_values(0):
+                close = df["Close"].copy()
+                close.columns.name = None
+                return close
+            raise ValueError(
+                "Expected 'Adj Close' or 'Close' in yfinance download result"
+            )
+        case _:
+            raise TypeError("Expected a pandas Series or DataFrame")
 
 
 def fetch_adjusted_close(
     tickers: Iterable[str],
-    start: Optional[str | pd.Timestamp] = None,
-    end: Optional[str | pd.Timestamp] = None,
+    start: str | pd.Timestamp | None = None,
+    end: str | pd.Timestamp | None = None,
     progress: bool = False,
 ) -> pd.DataFrame:
     """Fetch adjusted close prices for all tickers in one call when possible.
@@ -60,7 +63,9 @@ def fetch_adjusted_close(
     DataFrame
             Adjusted close price panel, columns are tickers.
     """
-    unique = sorted({str(t).strip().upper() for t in tickers if t and str(t).strip()})
+    unique: list[str] = sorted(
+        {str(t).strip().upper() for t in tickers if t and str(t).strip()}
+    )
     if not unique:
         return pd.DataFrame()
     data = yf.download(
@@ -86,14 +91,14 @@ def fetch_adjusted_close(
 
 def align_on_common_dates(
     prices: pd.DataFrame, min_obs: int = 60
-) -> Tuple[pd.DataFrame, List[str]]:
+) -> tuple[pd.DataFrame, list[str]]:
     """Align series on common dates and drop assets with insufficient obs.
 
     Returns aligned frame and a list of dropped tickers.
     """
     if prices.empty:
         return prices, []
-    dropped: List[str] = []
+    dropped: list[str] = []
     counts = prices.notna().sum()
     for t in prices.columns:
         if counts.get(t, 0) < min_obs:
@@ -105,7 +110,7 @@ def align_on_common_dates(
 
 def coverage_table(prices: pd.DataFrame) -> pd.DataFrame:
     """Return a table with coverage info per ticker."""
-    rows: List[Dict[str, object]] = []
+    rows: list[dict[str, object]] = []
     for t in prices.columns:
         col = prices[t].dropna()
         start = col.index.min() if not col.empty else None
